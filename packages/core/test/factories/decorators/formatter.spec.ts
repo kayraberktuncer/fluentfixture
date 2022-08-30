@@ -1,4 +1,5 @@
 import { instance, mock, spy, verify, when } from 'ts-mockito';
+import { Template } from '@fluentfixture/format';
 import { NON_NON_EMPTY_STRING_DATA_SET } from '../../data/type-sets';
 import { MockFactory } from '../../mocks/mock-factory';
 import { Factory } from '../../../src/factories/factory';
@@ -27,11 +28,12 @@ describe('Formatter', () => {
       const template = 'KEY={key}';
       const factoryOut = { 'key': 'value' };
       const mockFactory = mock(Factory);
-      const compiledTemplate = (): string => out;
+      const mockTemplate = mock<Template>();
       const spyFormatUtils = spy(FormatHelper);
 
       when(mockFactory.single()).thenReturn(factoryOut);
-      when(spyFormatUtils.compile(template)).thenReturn(compiledTemplate);
+      when(spyFormatUtils.compile(template)).thenReturn(instance(mockTemplate));
+      when(mockTemplate.format(factoryOut)).thenReturn(out);
 
       const factory = new Formatter(instance(mockFactory), template);
 
@@ -40,6 +42,7 @@ describe('Formatter', () => {
       expect(result).toBe(out);
       verify(mockFactory.single()).once();
       verify(spyFormatUtils.compile(template)).once();
+      verify(mockTemplate.format(factoryOut)).once();
     });
   });
 });

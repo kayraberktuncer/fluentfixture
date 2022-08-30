@@ -1,95 +1,131 @@
-# @fluentfixture/format
+<p align="center">
+  <a href="https://github.com/fluentfixture" target="blank"><img src="https://i.imgur.com/qLGGhTh.jpg" width="120" alt="Fluent Fixture Logo" /></a>
+</p>
 
-```@fluentfixture/format``` is a small string interpolation library that supports default values and transforms.
+<p align="center">A flexible string format library that is a part of <a href="https://github.com/fluentfixture">@fluentfixture</a> project.</p>
 
-## Installation
+[![CircleCI](https://circleci.com/gh/fluentfixture/fluentfixture/tree/main.svg?style=svg)](https://circleci.com/gh/fluentfixture/fluentfixture/tree/main)
+[![npm version](https://badge.fury.io/js/@fluentfixture%2Fformat.svg)](https://badge.fury.io/js/@fluentfixture%2Fformat)
+[![Coverage Status](https://coveralls.io/repos/github/fluentfixture/fluentfixture/badge.svg?branch=main)](https://coveralls.io/github/fluentfixture/fluentfixture?branch=main)
+[![Known Vulnerabilities](https://snyk.io/test/github/fluentfixture/fluentfixture/badge.svg)](https://snyk.io/test/github/fluentfixture/fluentfixture)
+[![CodeFactor](https://www.codefactor.io/repository/github/fluentfixture/fluentfixture/badge)](https://www.codefactor.io/repository/github/fluentfixture/fluentfixture)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@fluentfixture/format)](https://bundlephobia.com/package/@fluentfixture/format)
 
+## @fluentfixture/format
+
+A flexible string format library that is a part of [@fluentfixture](https://github.com/fluentfixture) project. Provides
+formatting and compiling functionalities with extensible transformation capabilities. Sample codes can be found in
+the [samples](https://github.com/fluentfixture/fluentfixture/tree/main/sample/format) folder.
+
+```bash
+> npm install @fluentfixture/format
 ```
-$ npm install @fluentfixture/format
-```
 
-## Example
+## Usage
+
+### Syntax
+
+Formatting syntax consist of two parts:`"${path:pipe-1|pipe-n}"`
+
+- the `path` is the descriptor of the target property. When the `path` is empty, the target is the whole source object.
+- the `pipe-1` and `pipe-n` are transformation functions.
+
+| Syntax                          | Target    | Transformations        |
+|---------------------------------|-----------|------------------------|
+| `${}`                           | obj       |                        |
+| `${key}`                        | obj.key   |                        |
+| `${key:trim()\|padLeft(5)}`     | obj.key   | `trim()`, `padLeft(5)` |
+| `${:trim()\|split(",")}`        | obj       | `trim()`, `split(",")` |
+
+### Simple Formatting
+
+`@fluentfixture/format` provides two global methods and one default instance with default configurations: `format`
+, `compile`, and the `formatter`. The `format` method produces
+the formatted string immediately. Differently, `compile` methods returns a pre-compiled template for reusing.
+
+> Using the `compile` method is extremely fast according to the `format` method for repeating usages.
 
 ```typescript
-import { format, compile } from '@fluentfixture/format';
+import { format, compile, formatter } from '@fluentfixture/format';
 
-const product = {
-  id: 100,
-  name: 'Dress',
-  price: {
-    amount: 9.99,
+const source = {
+  name: 'john',
+  surname: 'doe',
+  balance: {
+    amount: 120,
     currency: 'USD'
   },
-  categories: ['fashion', 'dress']
+  memberships: ['regular user', 'pro user']
 };
 
-// format function formats the given object with the given template directly into a string.
-const output = format('Name={name|upper-case}, Price={price.amount} {price.currency:EUR}, Category={categories.0:no-cat}', product);
+format('${name:capitalCase()}.${surname:upperCase()} > MEMBERSHIP=${memberships.0:dotCase()}', source);
+// returns "John.DOE > MEMBERSHIP=regular.user"
 
-// ompile function returns precompiled expression that highly optimized way for repeating operations.
-const compiled = compile('Name={name|upper-case}, Price={price.amount} {price.currency:EUR}, Category={categories.0:no-cat}');
+const template = compile('${name:capitalCase()}.${surname:upperCase()} > MEMBERSHIP=${memberships.0:dotCase()}');
 
-console.log(output);
-// > 'Name=DRESS, Price=9.99 USD, Category=fashion'
-
-console.log(compiled(product));
-// > 'Name=DRESS, Price=9.99 USD, Category=fashion'
+template(source);
+// returns "John.DOE > MEMBERSHIP=regular.user"
 ```
 
-## Syntax
+### Custom Transformations
 
-```@fluentfixture/format``` supports default values and transforms. Library parses the expression according to the following syntax:
+`@fluentfixture/format` supports custom transformation functions. When customization is needed, a new instance can be
+used.
 
-```{selector:default-value|transform-1|transform-n|}```
+```typescript
+import { Formatter, Pipes } from '@fluentfixture/format';
 
-After the calculation and default value checks, the given transforms are executed synchronously. Each transform accepts the result of the previous one.
+const source = {
+  balance: {
+    amount: 12, 
+    currency: 'TRY'
+  }
+};
 
-| Expression                   | Selector   | Default | Transforms |
-|------------------------------|------------|---------|------------|
-| { exp : def &#124; t1 }      | PATH (exp) | def     | t1         |
-| { exp  &#124; t1 &#124; t2 } | PATH (exp) | *N/A*   | t1, t2     |
-| { exp : def }                | PATH (exp) | def     | *N/A*      |
-| { exp : &#124; t1 }          | PATH (exp) |         | t1         |
-| { : &#124; t1 }              | SELF       |         | t1         |
+const pipes = Pipes.withDefaults()
+  .register('inc', (val: number, arg: number) => val + arg)
+  .register('amount', (val: any) => `[${value.amount} ${value.currency}]`);
 
-### Selector Syntax
+const formatter = Formatter.create(pipes);
 
-```@fluentfixture/format``` supports two types of selectors:
-- Path: [Object-Path][3] as a selector library. So, any valid [Object-Path][3] selector is allowed.
-- Self: If the selector is empty, whole object is used. In this way, any primitive objects are supported.
+formatter.format('BALANCE=${balance:amount()}', source);
+// returns "BALANCE=12 TRY"
 
-### Transforms
+formatter.format('NEXT AMOUNT=${balance.amount:inc(10)}', source);
+// returns "NEXT AMOUNT="22
+```
 
-```@fluentfixture/format``` supports lots of built-in transforms.
+### Default Transformations
 
-| Transform         | Operation                | Documentation |
-|-------------------|--------------------------|---------------|
-| **lower-case**    | lower case conversion    | [source][1]   |
-| **upper-case**    | upper case conversion    | [source][1]   |
-| **constant-case** | constant case conversion | [source][2]   |
-| **dot-case**      | dot case conversion      | [source][2]   |
-| **header-case**   | header case conversion   | [source][2]   |
-| **param-case**    | param case conversion    | [source][2]   |
-| **pascal-case**   | pascal case conversion   | [source][2]   |
-| **snake-case**    | snake case conversion    | [source][2]   |
-| **capital-case**  | capital case conversion  | [source][2]   |
-| **camel-case**    | camel case conversion    | [source][2]   |
-| **trim**          | trim string              | [source][1]   |
-| **trim-start**    | trim string from start   | [source][1]   |
-| **trim-end**      | trim string from end     | [source][1]   |
-| **iso-date**      | ISO date conversion      | [source][4]   |
+| Name                  | Type   | Docs                       | Name             | Type   | Docs                       |
+|-----------------------|--------|----------------------------|------------------|--------|----------------------------|
+| `lowerCase()`         | String | [mdn][mdn-string]          | `constantCase()` | String | [change-case][change-case] |
+| `upperCase()`         | String | [mdn][mdn-string]          | `dotCase()`      | String | [change-case][change-case] |
+| `trim()`              | String | [mdn][mdn-string]          | `headerCase()`   | String | [change-case][change-case] |
+| `trimStart()`         | String | [mdn][mdn-string]          | `paramCase()`    | String | [change-case][change-case] |
+| `trimEnd()`           | String | [mdn][mdn-string]          | `pascalCase()`   | String | [change-case][change-case] |
+| `padStart(LEN, CH)`   | String | [mdn][mdn-string]          | `pathCase()`     | String | [change-case][change-case] |
+| `padEnd(LEN, CH)`     | String | [mdn][mdn-string]          | `snakeCase()`    | String | [change-case][change-case] |
+| `split(CH)`           | String | [mdn][mdn-string]          | `capitalCase()`  | String | [change-case][change-case] |
+| `camelCase()`         | String | [change-case][change-case] | `date(FORMAT)`   | Date   | [format][day-js]           |
+| `default(VAL)`        | *      | Returns the default value  | `reverse()`      | Array  | [mdn][mdn-array]           |
+| `join(CH)`            | Array  | [mdn][mdn-array]           | `sort()`         | Array  | [mdn][mdn-array]           |
 
-## Compile vs Format
+### Options
 
-Benchmarks show that ```compile()``` is much faster than ```format()``` method for repeating operations.
+| Options              | Description                                                                                                |
+|----------------------|------------------------------------------------------------------------------------------------------------|
+| options.ignoreErrors | When set to `true`, all transformation errors (not the syntax errors) will be ignored. (default is `true`) |
 
-| Input Length | Format                    | Compile                  |
-|--------------|---------------------------|--------------------------|
-| 100          | x 48,454 ops/sec ±29.97%  | x 160,238 ops/sec ±6.53% |
-| 500          | x 22,094 ops/sec ±2.72%   | x 33,938 ops/sec ±6.30%  | 
-| 1000         | x 8,392 ops/sec ±13.74%   | x 20,805 ops/sec ±3.55%  |
+## Follow Us!
 
-[1]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
-[2]: https://github.com/blakeembrey/change-case
-[3]: https://github.com/mariocasciaro/object-path
-[4]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date
+- Project [@fluentfixture](https://github.com/fluentfixture)
+
+## License
+
+@fluentfixture is [MIT](https://github.com/fluentfixture/fluentfixture/blob/main/LICENSE) licensed.
+
+[change-case]: https://www.npmjs.com/package/change-case
+[day-js]: https://day.js.org/docs/en/display/format
+[mdn-string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String
+[mdn-array]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array

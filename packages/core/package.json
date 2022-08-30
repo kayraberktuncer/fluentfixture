@@ -1,8 +1,10 @@
 {
   "name": "@fluentfixture/core",
-  "description": "A flexible tool for generating customizable mock data with fluent interface",
-  "version": "0.0.1",
+  "description": "A flexible tool for generating customizable mock data with fluent interface.",
+  "version": "0.0.0-rc.8",
   "license": "MIT",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
   "homepage": "https://github.com/fluentfixture/fluentfixture",
   "bugs": "https://github.com/fluentfixture/fluentfixture/issues",
   "author": {
@@ -10,22 +12,38 @@
     "email": "sonercokmen@gmail.com",
     "url": "https://github.com/scokmen"
   },
+  "keywords": [
+    "testing",
+    "mock",
+    "fake",
+    "fixture",
+    "format",
+    "interpolation"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/fluentfixture/fluentfixture"
   },
+  "scripts": {
+    "tsc": "tsc",
+    "clean": "rimraf ./lib",
+    "build": "npm run clean && npm run tsc"
+  },
   "directories": {
-    "lib": "src",
+    "lib": "lib",
     "test": "test"
   },
   "files": [
-    "src"
+    "lib"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@fluentfixture/format": "^0.0.1",
-    "change-case": "4.1.2",
-    "dayjs": "1.10.8",
+    "@fluentfixture/format": "^0.0.0-rc.8",
+    "@fluentfixture/shared": "^0.0.0-rc.8",
     "random-js": "2.1.0",
     "randomstring": "1.2.2"
-  }
+  },
+  "gitHead": "b4ce0e4e9765b3369b5f4f0a8cca48dce30113ab"
 }
